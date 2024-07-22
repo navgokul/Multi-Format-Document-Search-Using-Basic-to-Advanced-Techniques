@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, Text, END
 import shutil
 
+# Load documents from a directory, handling different file types (PDF, image, text)
 def load_documents(directory):
     documents = []
     skipped_files = []  # Store files that caused errors
@@ -28,6 +29,7 @@ def load_documents(directory):
             skipped_files.append(filename)  # Add problematic file to the list
     return documents, skipped_files
 
+# Load and process a PDF file, extracting its text content
 def load_pdf(filepath):
     doc = fitz.open(filepath)
     text = ""
@@ -35,16 +37,19 @@ def load_pdf(filepath):
         text += page.get_text()
     return {'text': text, 'metadata': get_metadata(filepath)}
 
+# Load and process an image file, extracting text using OCR (pytesseract)
 def load_image(filepath):
     image = Image.open(filepath)
     text = pytesseract.image_to_string(image)
     return {'text': text, 'metadata': get_metadata(filepath)}
 
+# Load and process a text file, reading its content
 def load_text_file(filepath):
     with open(filepath, 'r') as file:
         text = file.read()
     return {'text': text, 'metadata': get_metadata(filepath)}
 
+# Extract metadata from a file, including filename, size, and creation date
 def get_metadata(filepath):
     return {
         'filename': os.path.basename(filepath),
@@ -52,6 +57,7 @@ def get_metadata(filepath):
         'creation_date': os.path.getctime(filepath)
     }
 
+# Create an index from the loaded documents using Whoosh
 def create_index(directory, documents):
     schema = Schema(filename=ID(stored=True),
                     size=STORED,
@@ -71,6 +77,7 @@ def create_index(directory, documents):
                             content=doc['text'])
     writer.commit()
 
+# Search the index for a given query string and return matching documents' filenames
 def search_index(directory, query_str):
     index = open_dir(directory)
     query = QueryParser("content", index.schema).parse(query_str)
@@ -78,17 +85,21 @@ def search_index(directory, query_str):
         results = searcher.search(query)
         return [{'filename': result['filename']} for result in results]  # Return only filenames
 
+# Main function to set up the GUI and handle user interactions
 def main():
+    # Select source folder for documents
     def select_source_folder():
         folder_selected = filedialog.askdirectory()
         source_folder_entry.delete(0, END)
         source_folder_entry.insert(0, folder_selected)
 
+    # Select destination folder for copying search results
     def select_destination_folder():
         folder_selected = filedialog.askdirectory()
         destination_folder_entry.delete(0, END)
         destination_folder_entry.insert(0, folder_selected)
 
+    # Start indexing process
     def start_indexing():
         document_directory = source_folder_entry.get()
         index_directory = "indexdir"
@@ -99,6 +110,7 @@ def main():
             error_message = "The following files were skipped due to errors:\n\n" + "\n".join(skipped_files)
             tk.messagebox.showwarning("Skipped Files", error_message)
 
+    # Search the index and copy matching documents to the destination folder
     def search_and_copy():
         document_directory = source_folder_entry.get()
         index_directory = "indexdir"
@@ -116,6 +128,7 @@ def main():
     window = tk.Tk()
     window.title("Document Search Engine")
 
+    # Source folder selection
     source_folder_label = tk.Label(window, text="Source Folder:")
     source_folder_label.grid(row=0, column=0, padx=5, pady=5)
 
@@ -135,19 +148,23 @@ def main():
     destination_folder_button = tk.Button(window, text="Browse", command=select_destination_folder)
     destination_folder_button.grid(row=1, column=2, padx=5, pady=5)
 
+    # Index documents button
     index_button = tk.Button(window, text="Index Documents", command=start_indexing)
     index_button.grid(row=2, column=0, columnspan=3, pady=10)
 
+    # Search label and entry
     search_label = tk.Label(window, text="Search:")
     search_label.grid(row=3, column=0, padx=5, pady=5)
 
     search_entry = Text(window, height=2, width=40)
     search_entry.grid(row=4, column=0, columnspan=3, padx=5, pady=5)
 
+    # Search and copy button
     search_button = tk.Button(window, text="Search and copy", command=search_and_copy)
     search_button.grid(row=5, column=0, columnspan=3, pady=10)
 
     window.mainloop()
 
+# Run the main function when the script is executed
 if __name__ == "__main__":
     main()
