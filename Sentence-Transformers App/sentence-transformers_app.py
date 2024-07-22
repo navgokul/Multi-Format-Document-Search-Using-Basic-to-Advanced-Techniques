@@ -31,7 +31,7 @@ def load_and_embed_document(filepath, model):
     else:
         return None
 
-# Load functions
+# Load functions for different document types
 def load_pdf(filepath, model):
     doc = fitz.open(filepath)
     text = ""
@@ -52,6 +52,7 @@ def load_text_file(filepath, model):
     embedding = model.encode(text)
     return {'text': text, 'embedding': embedding, 'metadata': get_metadata(filepath)}
 
+# Function to extract metadata from a file
 def get_metadata(filepath):
     return {
         'filename': os.path.basename(filepath),
@@ -59,7 +60,7 @@ def get_metadata(filepath):
         'creation_date': os.path.getctime(filepath)
     }
 
-# Function to create Faiss index
+# Function to create a Faiss index from document embeddings
 def create_index(documents):
     dimension = len(documents[0]['embedding'])
     index = faiss.IndexFlatL2(dimension)
@@ -67,7 +68,7 @@ def create_index(documents):
     index.add(embeddings)
     return index
 
-# Function to search the index
+# Function to search the Faiss index for similar documents
 def search_index(index, query_embedding, metadata, top_k=5):
     distances, indices = index.search(np.array([query_embedding]), top_k)
     results = []
@@ -114,7 +115,7 @@ def run_search():
     index = create_index(documents)
     metadata = [doc['metadata'] for doc in documents]
 
-    # Search 
+    # Search
     query_embedding = model.encode(query)
     results = search_index(index, query_embedding, metadata)
 
